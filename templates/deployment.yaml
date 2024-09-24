@@ -30,7 +30,6 @@ spec:
       serviceAccountName: {{ include "helm-template.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-
       # Начало секции initContainers
       {{- with .Values.initContainers }}
       initContainers:
@@ -40,10 +39,19 @@ spec:
           command: {{ toYaml .command | nindent 12 }}
           {{- with .env }}
           env:
-            {{- with .Values.env.config }}
-            {{- toYaml . | nindent 10 }}
+            {{- with $.Values.env.config }}
+            {{- range . }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ }}
             {{- end }}
-            {{- tpl .Values.env.urls . | nindent 10 }}
+            {{- end }}
+
+            {{- with $.Values.env.urls }}
+            {{- range . }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ }}
+            {{- end }}
+            {{- end }}
           {{- end }}
           {{- with .volumeMounts }}
           volumeMounts:
@@ -59,20 +67,33 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .env }}
           env:
-            {{- with .Values.env.config }}
-            {{- toYaml . | nindent 10 }}
+            {{- with $.Values.env.config }}
+            {{- range . }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ }}
             {{- end }}
-            {{- tpl .Values.env.urls . | nindent 10 }}
-          {{- if .Values.commands.enabled }}
-          command: {{ .Values.commands.command }}
-          args: {{ .Values.commands.args }}
-          {{ end }}
+            {{- end }}
+
+            {{- with $.Values.env.urls }}
+            {{- range . }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ }}
+            {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if .Values.commands }}
+            {{- if .Values.commands.enabled }}
+            command: {{ .Values.commands.command }}
+            args: {{ .Values.commands.args }}
+            {{- end }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
-          {{- if .Values.resources.enabled }}
+          {{- if .Values.resources }}
           resources:
             limits:
               cpu: {{ .Values.resources.limits.cpu }}
@@ -80,18 +101,24 @@ spec:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}
               memory: {{ .Values.resources.requests.memory }}
-          {{ end }}
-          {{- if .Values.probe.liveness.enabled }}
+          {{- end }}
+          {{- if .Values.probe }}
+          {{- if .Values.probe.liveness }}
           livenessProbe:
             httpGet:
               path: {{ .Values.probe.liveness.path }}
               port: {{ .Values.probe.liveness.port }}
+            initialDelaySeconds: {{ .Values.probe.liveness.initialDelaySeconds | default 10 }}
+            periodSeconds: {{ .Values.probe.liveness.periodSeconds | default 10 }}
           {{- end }}
-          {{- if .Values.probe.readiness.enabled }}
+          {{- if .Values.probe.readiness }}
           readinessProbe:
             httpGet:
               path: {{ .Values.probe.readiness.path }}
               port: {{ .Values.probe.readiness.port }}
+            initialDelaySeconds: {{ .Values.probe.readiness.initialDelaySeconds | default 5 }}
+            periodSeconds: {{ .Values.probe.readiness.periodSeconds | default 5 }}
+          {{- end }}
           {{- end }}
 
           {{- with .Values.volumeMounts }}
