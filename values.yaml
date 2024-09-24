@@ -22,8 +22,9 @@ probe:
     port: http
 
 env:
-  namespace: NAMESPACE
-  base_url: BASEURL
+  namespace: "test-namespace"
+  base_url: "example.com"
+  shortname_url: "gw"
   ## |-  описываем блок с переменными как string
   config: 
     - name: PSQL_PASS
@@ -193,7 +194,8 @@ serviceAccount:
   name: ""
 
 podAnnotations: 
-  vault.security.banzaicloud.io/vault-addr: "https://vault.chat2desk.tech" 
+  #vault.security.banzaicloud.io/vault-addr: "https://vault.chat2desk.tech" 
+  vault.security.banzaicloud.io/vault-addr: "https://home.olegekanet.com:8200" 
   vault.security.banzaicloud.io/vault-role: "NAMESPACE" 
   vault.security.banzaicloud.io/vault-skip-verify: "true" 
   vault.security.banzaicloud.io/vault-agent: "false" 
@@ -225,20 +227,19 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
   hosts:
-    host: "{{ .Chart.Description }}-{{  .Values.env.namespace }}.{{ .Values.env.base_url }}"
+    host: "{{ .Values.env.shortname_url }}-{{  .Values.env.namespace }}.{{ .Values.env.base_url }}"
     paths:
       - path: /
         pathType: Prefix
   tls:
-    secretName: BASEURL
+    secretName: sslcert
     hosts:
-      - "{{ .Chart.Description }}-{{  .Values.env.namespace }}.{{ .Values.env.base_url }}"
+      - "{{ .Values.env.shortname_url }}-{{  .Values.env.namespace }}.{{ .Values.env.base_url }}"
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
 
-resources:
-  {}
+resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following
@@ -268,38 +269,26 @@ affinity: {}
 
 ######### initContainers ##################
 initContainers:
-  - name: build-static
-    image: "repo/init-image1:latest"
-    command: ['sh', '-c', "yarn install --production=false && yarn build"]
-    env:
-      - name: REDIS_IP
-        valueFrom:
-          secretKeyRef:
-            name: redis-secret
-            key: redis-ip
-    volumeMounts:
-      - name: pv-storage
-        mountPath: /app/static
+  # - name: build-static
+  #   image: "repo/init-image1:latest"
+  #   command: ['sh', '-c', "yarn install --production=false && yarn build"]
+  #   volumeMounts:
+  #     - name: pv-storage
+  #       mountPath: /app/static
 
-  - name: prepare-db
-    image: "repo/init-image2:latest"
-    command: ['sh', '-c', "bundle exec rake db:migrate"]
-    env:
-      - name: DATABASE_URL
-        valueFrom:
-          secretKeyRef:
-            name: db-secret
-            key: database-url
-    volumeMounts:
-      - name: db-storage
-        mountPath: /app/db
+  # - name: prepare-db
+  #   image: "repo/init-image2:latest"
+  #   command: ['sh', '-c', "bundle exec rake db:migrate"]
+  #   volumeMounts:
+  #     - name: db-storage
+  #       mountPath: /app/db
 
   - name: wait-for-service
-    image: "repo/init-image3:latest"
+    image: "nginx"
     command: ['sh', '-c', "sleep 30"]
-    env:
-      - name: SERVICE_URL
-        value: "http://example.com"
+    # env:
+    #   - name: SERVICE_URL
+    #     value: "http://example.com"
 
 ######### END initContainers ##################
 # env:
