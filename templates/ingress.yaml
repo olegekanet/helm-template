@@ -1,40 +1,29 @@
-{{- if .Values.ingress.enabled -}}
-{{- $name := include "helm-template.name" . -}}
-{{- $svcPort := .Values.service.port -}}
-{{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
-  {{- end }}
-{{- end }}
+{{- range $appName, $app := .Values.groups.main.apps }}
+{{- if $app.ingress }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $name }}
-  labels:
-    {{- include "helm-template.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  name: {{ $appName }}-ingress
+  namespace: {{ $.Values.namespace }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+    kubernetes.io/ingress.class: {{ $app.ingress.class }}
+    cert-manager.io/cluster-issuer: {{ $.Values.groups.main.ingress.cluster_issuer }}
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
-  {{- if .Values.ingress.tls }}
-  tls:
-    - hosts:
-        - {{ tpl .Values.ingress.hosts.host . }}
-      secretName: {{  .Values.ingress.tls.secretName }}
-  {{- end }}
   rules:
-    - host: {{ tpl .Values.ingress.hosts.host . }}
+    - host: {{ $app.ingress.host }}
       http:
         paths:
-          {{- range .Values.ingress.hosts.paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          - path: /
+            pathType: Prefix
             backend:
               service:
-                name: {{ $name }}
+                name: {{ $appName }}-svc
                 port:
-                  number: {{ $svcPort }}
-          {{- end }}
+                  number: {{ $app.targetport }}
+  tls:
+    - hosts:
+        - {{ $app.ingress.host }}
+      secretName: {{ $appName }}-tls
+---
+{{- end }}
 {{- end }}

@@ -1,9 +1,10 @@
+{{- range $appName, $app := .Values.groups.main.apps }}
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "helm-template.fullname" . }}-test-connection"
+  name: "{{ $appName  }}-test-connection"
   labels:
-    {{- include "helm-template.labels" . | nindent 4 }}
+    {{- $appName | nindent 4 }}
   annotations:
     "helm.sh/hook": test
 spec:
@@ -11,5 +12,7 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "helm-template.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ $appName }}:{{ $app.service.port }}']
   restartPolicy: Never
+---
+{{- end }}

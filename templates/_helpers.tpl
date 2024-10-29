@@ -2,8 +2,12 @@
 Expand the name of the chart.
 */}}
 {{- define "helm-template.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
-{{- end }}
+{{- if .Chart -}}
+{{ .Values.Name }}
+{{- else -}}
+default-chart-name
+{{- end -}}
+{{- end -}}
 
 {{/*
 Create a default fully qualified app name.
@@ -14,11 +18,11 @@ If release name contains chart name it will be used as a full name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- $name := default .Values.Name .Values.nameOverride }}
+{{- if contains $name .Values.Name }}
+{{- .Values.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Values.Name $name | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -27,31 +31,22 @@ If release name contains chart name it will be used as a full name.
 Create chart name and version as used by the chart label.
 */}}
 {{- define "helm-template.chart" -}}
-{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Values.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
-Common labels
-*/}}
-{{- define "helm-template.labels" -}}
-helm.sh/chart: {{ include "helm-template.chart" . }}
-{{ include "helm-template.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-{{- end }}
-
-{{/*
-Selector labels
+Selector labels.
 */}}
 {{- define "helm-template.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "helm-template.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ .Values.Name | default "default-instance" }}  # Use a default value if nil
+{{- if .Chart -}}
+chart: {{ .Values.Name | default "default-chart" }}  # Use a default value if nil
+{{- end -}}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+Create the name of the service account to use.
 */}}
 {{- define "helm-template.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}

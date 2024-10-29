@@ -1,6 +1,7 @@
 1. Application URL:
-{{- if .Values.ingress.enabled }}
-http://{{  .Values.env.namespace }}-{{ .Chart.Description }}.{{ .Values.env.base_url }}
-https://{{  .Values.env.namespace }}-{{ .Chart.Description }}.{{ .Values.env.base_url }}
+{{- range $appName, $app := .Values.groups.main.apps }}
+  {{- if $app.ingress }}
+    http://{{ $app.ingress.host }}
+    https://{{ $app.ingress.host }}
+  {{- end }}
 {{- end }}
-

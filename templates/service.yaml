@@ -1,15 +1,20 @@
+{{- range $appName, $app := .Values.groups.main.apps }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "helm-template.fullname" . }}
+  name: {{ $appName }}-svc
+  namespace: {{ $.Values.namespace }}
   labels:
-    {{- include "helm-template.labels" . | nindent 4 }}
+    app: {{ $appName }}
+    contour: {{ $.Values.contour }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ $app.service.type | default "ClusterIP" }}
   ports:
-    - port: {{ .Values.service.port }}
-      targetPort: http
+    - port: {{ $app.service.port | default 80 }}
+      targetPort: {{ $app.service.targetport | default 80 }}
       protocol: TCP
       name: http
   selector:
-    {{- include "helm-template.selectorLabels" . | nindent 4 }}
+    app: {{ $appName }}
+---
+{{- end }}
